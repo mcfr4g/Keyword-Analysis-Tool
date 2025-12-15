@@ -67,6 +67,7 @@ export const analyzeKeywords = async (
 
     DATA EXTRACTION RULES:
     - **Search Volume**: Priority: Specific numbers. Fallback: Ranges (e.g., "1K–10K"). 
+    - **NO HALLUCINATIONS**: If accurate volume data is not found in search results, set "searchVolume" to "Data Unavailable". DO NOT GUESS or fabricate numbers.
     - **Tail Type**: Classify as 'Short-tail' (1-2 words, broad) or 'Long-tail' (3+ words, specific).
     - **Quick Win**: Set 'isQuickWin' to true ONLY if volume is decent (e.g. >500) AND competition is Low/Medium.
     - **Alternatives**: Provide exactly 10 BETTER alternative keywords. For EACH alternative, you MUST provide its estimated Volume, Competition, and a "Why Better" reason (e.g., "Higher Intent", "Lower Difficulty").
@@ -82,7 +83,7 @@ export const analyzeKeywords = async (
     [
       {
         "keyword": "string (The input keyword)",
-        "searchVolume": "string (e.g., '12,500', '1k-10k')",
+        "searchVolume": "string (e.g., '12,500', '1k-10k' or 'Data Unavailable')",
         "competition": "string (Low, Medium, High)",
         "difficulty": "string (e.g., '45/100', 'Hard')",
         "keywordType": "string (Short-tail or Long-tail)",
