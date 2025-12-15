@@ -5,6 +5,13 @@ export interface RelatedKeywordMetric {
   keywordType: 'Short-tail' | 'Long-tail';
 }
 
+export interface SerpResult {
+  position: number;
+  title: string;
+  url: string;
+  snippet: string;
+}
+
 export interface KeywordMetric {
   keyword: string;
   searchVolume: string; // Keep as string to handle ranges or "N/A" cleanly, then parse for charts
@@ -16,6 +23,7 @@ export interface KeywordMetric {
   keywordType: 'Short-tail' | 'Long-tail'; // Classification
   isQuickWin: boolean; // True if good volume + low competition
   siteAudit?: string; // Performance/Ranking check for user's site
+  serpResults?: SerpResult[]; // Top 10 Ranking pages
 }
 
 export interface GroundingChunk {
@@ -35,4 +43,11 @@ export interface SearchParams {
   keywords: string;
   location: string;
   website?: string;
+}
+
+export interface SearchHistoryItem {
+  keywords: string;
+  location: string;
+  website?: string;
+  timestamp: number;
 }

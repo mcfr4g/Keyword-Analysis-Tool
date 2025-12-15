@@ -1,16 +1,26 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Search, MapPin, Loader2, UploadCloud, FileText, Globe } from 'lucide-react';
 
 interface SearchFormProps {
   onSearch: (keywords: string, location: string, website?: string) => void;
   isLoading: boolean;
+  initialValues?: { keywords: string; location: string; website?: string } | null;
 }
 
-const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading }) => {
+const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading, initialValues }) => {
   const [keywords, setKeywords] = useState('');
   const [location, setLocation] = useState('');
   const [website, setWebsite] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+
+  // Sync state when initialValues change (e.g. user clicks history)
+  useEffect(() => {
+    if (initialValues) {
+      setKeywords(initialValues.keywords);
+      setLocation(initialValues.location);
+      setWebsite(initialValues.website || '');
+    }
+  }, [initialValues]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

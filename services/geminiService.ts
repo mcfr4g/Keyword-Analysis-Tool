@@ -34,27 +34,36 @@ export const analyzeKeywords = async (
 
   const ai = new GoogleGenAI({ apiKey });
 
+  // Calculate actual keyword count to force the model to match it
+  const keywordList = keywords.split(/,|\n/).map(k => k.trim()).filter(k => k.length > 0);
+  const keywordCount = keywordList.length;
+  const keywordString = keywordList.join(', ');
+
   const websiteContext = website 
     ? `CONTEXT: The user owns the website "${website}". You must check if this site has content relevant to the keywords.` 
     : "";
 
   const websiteSearchInstruction = website
-    ? `4. **Site Performance**: Search for "site:${website} ${keywords.split('\n')[0].split(',')[0]}..." to check indexing/ranking visibility.`
+    ? `5. **Site Performance**: Search for "site:${website} ${keywordList[0]}..." to check indexing/ranking visibility.`
     : "";
 
   // Constructed prompt to force tool usage and structure
   const prompt = `
     Role: Senior SEO Data Scientist.
-    Task: Conduct a deep-dive keyword analysis for: "${keywords.replace(/\n/g, ', ')}" in location: "${location}".
+    Task: Conduct a deep-dive keyword analysis for the following ${keywordCount} keywords: "${keywordString}" in location: "${location}".
     ${websiteContext}
 
     OBJECTIVE:
     Provide ACCURATE, REAL-WORLD data using 'googleSearch'. 
     
+    CRITICAL INSTRUCTION:
+    You have received exactly ${keywordCount} keywords. You MUST return a JSON array containing exactly ${keywordCount} objects. Do not combine them. Do not skip any.
+
     SEARCH INSTRUCTIONS:
     1.  **Volume & Stats**: Search for "[keyword] search volume range 2024", "[keyword] monthly searches ${location}".
     2.  **Competition**: Search for "[keyword] keyword difficulty".
     3.  **Alternatives**: Look for "better keywords for [keyword]" or "related long-tail keywords for [keyword]".
+    4.  **SERP Analysis**: Search for the exact keyword "[keyword]" to see the current top ranking pages.
     ${websiteSearchInstruction}
 
     DATA EXTRACTION RULES:
@@ -62,15 +71,18 @@ export const analyzeKeywords = async (
     - **Tail Type**: Classify as 'Short-tail' (1-2 words, broad) or 'Long-tail' (3+ words, specific).
     - **Quick Win**: Set 'isQuickWin' to true ONLY if volume is decent (e.g. >500) AND competition is Low/Medium.
     - **Alternatives**: Provide exactly 5 BETTER alternative keywords. For EACH alternative, you MUST provide its estimated Volume and Competition.
+    - **SERP Results**: List the Top 10 organic search results found for the keyword. Include Title, URL, and a brief snippet.
     ${website ? '- **Site Audit**: If the website was provided, estimate current performance (e.g., "Indexed", "Not found", "Low relevance content"). If no website, leave null.' : ''}
 
-    OUTPUT FORMAT:
-    Return a strictly valid JSON array of objects, followed by a text summary.
+    OUTPUT STRUCTURE:
+    1. First, provide a "## Market Insights" section. This must be plain text. Summarize the overall opportunity, competition levels, and top recommendations. Do NOT put JSON here.
+    2. Then, output this exact separator string on a new line: ---JSON_START---
+    3. Finally, output the strictly valid JSON array containing the data for ALL ${keywordCount} keywords.
 
-    JSON SCHEMA:
+    JSON SCHEMA (for the part after the separator):
     [
       {
-        "keyword": "string",
+        "keyword": "string (The input keyword)",
         "searchVolume": "string (e.g., '12,500', '1k-10k')",
         "competition": "string (Low, Medium, High)",
         "difficulty": "string (e.g., '45/100', 'Hard')",
@@ -79,6 +91,9 @@ export const analyzeKeywords = async (
         "siteAudit": "string (Optional)",
         "recommendation": "string (Actionable advice)",
         "rationale": "string (Why this recommendation?)",
+        "serpResults": [
+            { "position": 1, "title": "string", "url": "string", "snippet": "string" }
+        ],
         "relatedKeywords": [
            {
              "keyword": "string",
@@ -89,8 +104,6 @@ export const analyzeKeywords = async (
         ]
       }
     ]
-
-    After the JSON, provide a "Market Insights" summary.
   `;
 
   try {
@@ -105,19 +118,24 @@ export const analyzeKeywords = async (
     const text = response.text || "";
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
 
-    const parsedMetrics = parseJSONFromMarkdown(text);
+    // Split logic to cleanly separate summary from JSON
+    const separator = "---JSON_START---";
+    const parts = text.split(separator);
     
-    // Fallback summary extraction
-    let summary = "Analysis completed.";
-    const jsonBlockRegex = /```json\s*[\s\S]*?\s*```|\[\s*\{[\s\S]*\}\s*\]/;
-    const match = text.match(jsonBlockRegex);
-    if (match) {
-        summary = text.replace(match[0], "").trim();
+    let summary = "";
+    let jsonPart = "";
+
+    if (parts.length >= 2) {
+        summary = parts[0].replace(/## Market Insights/i, "").trim();
+        jsonPart = parts[1];
     } else {
-        summary = text;
+        // Fallback if model forgot separator
+        console.warn("Separator not found, attempting fallback parse.");
+        jsonPart = text;
+        summary = "Analysis loaded. See details below.";
     }
 
-    if (!summary) summary = "Data parsed successfully. See table below.";
+    const parsedMetrics = parseJSONFromMarkdown(jsonPart);
 
     if (!parsedMetrics && !text) {
         throw new Error("The AI model returned no content.");

@@ -1,15 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import SearchForm from './components/SearchForm';
 import ResultsDisplay from './components/ResultsDisplay';
+import SearchHistory from './components/SearchHistory';
 import { analyzeKeywords } from './services/geminiService';
-import { AnalysisResult } from './types';
+import { AnalysisResult, SearchHistoryItem } from './types';
 import { AlertCircle, Terminal } from 'lucide-react';
 
 const App: React.FC = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasApiKey, setHasApiKey] = useState(true); // Assume true initially to avoid flicker
+  const [hasApiKey, setHasApiKey] = useState(true);
+  
+  // History State
+  const [history, setHistory] = useState<SearchHistoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('searchHistory');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Used to populate form when history item is clicked
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<SearchHistoryItem | null>(null);
 
   useEffect(() => {
     if (!process.env.API_KEY) {
@@ -17,10 +31,47 @@ const App: React.FC = () => {
     }
   }, []);
 
+  const addToHistory = (keywords: string, location: string, website?: string) => {
+    const newItem: SearchHistoryItem = { 
+        keywords, 
+        location, 
+        website, 
+        timestamp: Date.now() 
+    };
+
+    setHistory(prev => {
+      // Filter out exact duplicates to avoid clutter, keeping the newest one
+      const filtered = prev.filter(item => 
+        !(item.keywords === keywords && item.location === location && item.website === website)
+      );
+      // Keep last 6 items
+      const updated = [newItem, ...filtered].slice(0, 6);
+      localStorage.setItem('searchHistory', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleClearHistory = () => {
+      setHistory([]);
+      localStorage.removeItem('searchHistory');
+  };
+
+  const handleHistorySelect = (item: SearchHistoryItem) => {
+      // Create a new object reference to ensure useEffect triggers in child
+      setSelectedHistoryItem({ ...item });
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Auto trigger search
+      handleSearch(item.keywords, item.location, item.website);
+  };
+
   const handleSearch = async (keywords: string, location: string, website?: string) => {
     setIsLoading(true);
     setError(null);
     setResult(null);
+    
+    // Save to history immediately
+    addToHistory(keywords, location, website);
 
     try {
       const apiKey = process.env.API_KEY || '';
@@ -71,8 +122,17 @@ const App: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-10">
         
         {/* Search Section */}
-        <section className="flex justify-center">
-            <SearchForm onSearch={handleSearch} isLoading={isLoading} />
+        <section className="flex flex-col items-center">
+            <SearchForm 
+                onSearch={handleSearch} 
+                isLoading={isLoading} 
+                initialValues={selectedHistoryItem}
+            />
+            <SearchHistory 
+                history={history} 
+                onSelect={handleHistorySelect} 
+                onClear={handleClearHistory} 
+            />
         </section>
 
         {/* Error Feedback */}

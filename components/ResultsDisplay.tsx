@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -11,7 +11,7 @@ import {
   Cell 
 } from 'recharts';
 import { AnalysisResult } from '../types';
-import { ExternalLink, TrendingUp, AlertTriangle, CheckCircle, BarChart2, Info, Lightbulb, Zap, Download, Layers, Globe } from 'lucide-react';
+import { ExternalLink, TrendingUp, AlertTriangle, CheckCircle, BarChart2, Info, Lightbulb, Zap, Download, Layers, Globe, ChevronDown, ChevronUp, Search, Bug, Code } from 'lucide-react';
 
 interface ResultsDisplayProps {
   data: AnalysisResult;
@@ -52,6 +52,15 @@ const parseVolume = (volStr: string): number => {
 };
 
 const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
+  const [expandedRows, setExpandedRows] = useState<number[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
+
+  const toggleRow = (idx: number) => {
+    setExpandedRows(prev => 
+      prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
+    );
+  };
+
   const chartData = data.metrics.map(m => {
     const volume = parseVolume(m.searchVolume);
     return {
@@ -87,7 +96,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
     // Define CSV Headers
     const headers = [
         'Keyword', 'Volume', 'Competition', 'Difficulty', 
-        'Type', 'Quick Win', 'Site Audit', 'Recommendation', 'Rationale', 'Better Alternatives (Format: Keyword [Vol | Comp])'
+        'Type', 'Quick Win', 'Site Audit', 'Recommendation', 'Rationale', 'Better Alternatives'
     ];
 
     // Map rows
@@ -142,7 +151,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
                 </button>
             )}
         </div>
-        <div className="prose prose-blue max-w-none text-gray-600 whitespace-pre-wrap">
+        <div className="prose prose-blue max-w-none text-gray-600 whitespace-pre-wrap leading-relaxed">
           {data.summary}
         </div>
         {data.metrics.length === 0 && (
@@ -214,19 +223,30 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
+                <th className="p-4 font-semibold border-b border-gray-200 w-12"></th>
                 <th className="p-4 font-semibold border-b border-gray-200 w-[15%]">Keyword</th>
                 <th className="p-4 font-semibold border-b border-gray-200 w-[12%]">Stats</th>
                 <th className="p-4 font-semibold border-b border-gray-200 w-[10%]">Difficulty</th>
                 {hasSiteAudit && (
                     <th className="p-4 font-semibold border-b border-gray-200 w-[15%]">My Site Audit</th>
                 )}
-                <th className={`p-4 font-semibold border-b border-gray-200 ${hasSiteAudit ? 'w-[25%]' : 'w-[30%]'}`}>Recommendation & Rationale</th>
-                <th className="p-4 font-semibold border-b border-gray-200 w-[28%]">Better Alternatives</th>
+                <th className={`p-4 font-semibold border-b border-gray-200 ${hasSiteAudit ? 'w-[20%]' : 'w-[25%]'}`}>Recommendation & Rationale</th>
+                <th className="p-4 font-semibold border-b border-gray-200 w-[25%]">Better Alternatives</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
                 {data.metrics.map((metric, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50/50 transition-colors group">
+                  <React.Fragment key={idx}>
+                  <tr className="hover:bg-blue-50/50 transition-colors group">
+                    <td className="p-4 align-top">
+                        <button 
+                            onClick={() => toggleRow(idx)}
+                            className="p-1 rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
+                            title="Toggle SERP View"
+                        >
+                            {expandedRows.includes(idx) ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+                    </td>
                     <td className="p-4 align-top">
                         <div className="font-medium text-gray-900">{metric.keyword}</div>
                         <div className="flex flex-wrap gap-1 mt-1">
@@ -308,6 +328,45 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
                         </div>
                     </td>
                   </tr>
+                  
+                  {/* Expanded SERP Row */}
+                  {expandedRows.includes(idx) && (
+                    <tr className="bg-gray-50/50">
+                        <td colSpan={100} className="p-0">
+                            <div className="p-6 bg-gray-50 border-y border-gray-100 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <h4 className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">
+                                    <Search className="w-4 h-4" />
+                                    Top 10 Google Search Results (SERP)
+                                </h4>
+                                {metric.serpResults && metric.serpResults.length > 0 ? (
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        {metric.serpResults.map((serp, sIdx) => (
+                                            <div key={sIdx} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:border-blue-300 transition-colors">
+                                                <div className="flex items-start gap-3">
+                                                    <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs font-bold mt-0.5">
+                                                        {serp.position}
+                                                    </span>
+                                                    <div className="min-w-0">
+                                                        <a href={serp.url} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline text-sm block truncate">
+                                                            {serp.title}
+                                                        </a>
+                                                        <div className="text-green-700 text-xs truncate mb-1">{serp.url}</div>
+                                                        <p className="text-xs text-gray-500 line-clamp-2">{serp.snippet}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-gray-500 text-sm italic py-4 text-center bg-white rounded border border-dashed border-gray-300">
+                                        No specific SERP data returned for this keyword.
+                                    </div>
+                                )}
+                            </div>
+                        </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 ))}
             </tbody>
           </table>
@@ -343,6 +402,31 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
           </ul>
         </div>
       )}
+
+      {/* Debug JSON Section */}
+      <div className="border border-gray-200 rounded-lg bg-gray-50 overflow-hidden">
+        <button 
+          onClick={() => setShowDebug(!showDebug)}
+          className="w-full flex items-center justify-between p-4 text-left text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Bug className="w-4 h-4" />
+            <span>Debug Raw Data (JSON)</span>
+          </div>
+          {showDebug ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+        {showDebug && (
+          <div className="p-4 border-t border-gray-200 bg-gray-900 overflow-x-auto">
+             <div className="flex items-center gap-2 text-gray-400 mb-2 text-xs">
+                <Code className="w-3 h-3" /> Raw API Response
+             </div>
+             <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-all">
+               {JSON.stringify(data.metrics, null, 2)}
+             </pre>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 };
