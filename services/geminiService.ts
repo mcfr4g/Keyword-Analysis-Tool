@@ -62,7 +62,7 @@ export const analyzeKeywords = async (
     SEARCH INSTRUCTIONS:
     1.  **Volume & Stats**: Search for "[keyword] search volume range 2024", "[keyword] monthly searches ${location}".
     2.  **Competition**: Search for "[keyword] keyword difficulty".
-    3.  **Alternatives**: Look for "better keywords for [keyword]" or "related long-tail keywords for [keyword]".
+    3.  **Alternatives**: Look for "better keywords for [keyword]" or "related long-tail keywords for [keyword]". Find at least 10 high-quality alternatives.
     4.  **SERP Analysis**: Search for the exact keyword "[keyword]" to see the current top ranking pages.
     ${websiteSearchInstruction}
 
@@ -70,7 +70,7 @@ export const analyzeKeywords = async (
     - **Search Volume**: Priority: Specific numbers. Fallback: Ranges (e.g., "1K–10K"). 
     - **Tail Type**: Classify as 'Short-tail' (1-2 words, broad) or 'Long-tail' (3+ words, specific).
     - **Quick Win**: Set 'isQuickWin' to true ONLY if volume is decent (e.g. >500) AND competition is Low/Medium.
-    - **Alternatives**: Provide exactly 5 BETTER alternative keywords. For EACH alternative, you MUST provide its estimated Volume and Competition.
+    - **Alternatives**: Provide exactly 10 BETTER alternative keywords. For EACH alternative, you MUST provide its estimated Volume, Competition, and a "Why Better" reason (e.g., "Higher Intent", "Lower Difficulty").
     - **SERP Results**: List the Top 10 organic search results found for the keyword. Include Title, URL, and a brief snippet.
     ${website ? '- **Site Audit**: If the website was provided, estimate current performance (e.g., "Indexed", "Not found", "Low relevance content"). If no website, leave null.' : ''}
 
@@ -99,7 +99,8 @@ export const analyzeKeywords = async (
              "keyword": "string",
              "searchVolume": "string",
              "competition": "string",
-             "keywordType": "string (Short-tail | Long-tail)"
+             "keywordType": "string (Short-tail | Long-tail)",
+             "whyBetter": "string (e.g. 'Higher Search Volume', 'Lower Competition')"
            }
         ]
       }

@@ -3,6 +3,7 @@ export interface RelatedKeywordMetric {
   searchVolume: string;
   competition: string;
   keywordType: 'Short-tail' | 'Long-tail';
+  whyBetter: string; // Reason why this keyword is recommended
 }
 
 export interface SerpResult {
@@ -19,7 +20,7 @@ export interface KeywordMetric {
   difficulty: string; // SEO Difficulty
   recommendation: string;
   rationale: string; // Explanation for the recommendation
-  relatedKeywords: RelatedKeywordMetric[]; // 5 Better alternatives with stats
+  relatedKeywords: RelatedKeywordMetric[]; // 10 Better alternatives with stats
   keywordType: 'Short-tail' | 'Long-tail'; // Classification
   isQuickWin: boolean; // True if good volume + low competition
   siteAudit?: string; // Performance/Ranking check for user's site

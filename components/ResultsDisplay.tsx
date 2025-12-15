@@ -11,7 +11,7 @@ import {
   Cell 
 } from 'recharts';
 import { AnalysisResult } from '../types';
-import { ExternalLink, TrendingUp, AlertTriangle, CheckCircle, BarChart2, Info, Lightbulb, Zap, Download, Layers, Globe, ChevronDown, ChevronUp, Search, Bug, Code } from 'lucide-react';
+import { ExternalLink, TrendingUp, AlertTriangle, CheckCircle, BarChart2, Info, Lightbulb, Zap, Download, Layers, Globe, ChevronDown, ChevronUp, Search, Bug, Code, ArrowRight } from 'lucide-react';
 
 interface ResultsDisplayProps {
   data: AnalysisResult;
@@ -217,6 +217,8 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
            <div className="flex items-center gap-4 text-xs">
               <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-amber-500 fill-amber-500"/> Quick Win</span>
               <span className="flex items-center gap-1"><Layers className="w-3 h-3 text-blue-500"/> Long/Short Tail</span>
+              <span className="text-gray-400">|</span>
+              <span className="text-gray-500 italic">Expand rows to see Alternatives & SERP</span>
            </div>
         </div>
         <div className="overflow-x-auto">
@@ -224,25 +226,26 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
             <thead>
               <tr className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
                 <th className="p-4 font-semibold border-b border-gray-200 w-12"></th>
-                <th className="p-4 font-semibold border-b border-gray-200 w-[15%]">Keyword</th>
-                <th className="p-4 font-semibold border-b border-gray-200 w-[12%]">Stats</th>
-                <th className="p-4 font-semibold border-b border-gray-200 w-[10%]">Difficulty</th>
+                <th className="p-4 font-semibold border-b border-gray-200 w-[20%]">Keyword</th>
+                <th className="p-4 font-semibold border-b border-gray-200 w-[15%]">Stats</th>
+                <th className="p-4 font-semibold border-b border-gray-200 w-[10%]">Diff.</th>
                 {hasSiteAudit && (
                     <th className="p-4 font-semibold border-b border-gray-200 w-[15%]">My Site Audit</th>
                 )}
-                <th className={`p-4 font-semibold border-b border-gray-200 ${hasSiteAudit ? 'w-[20%]' : 'w-[25%]'}`}>Recommendation & Rationale</th>
-                <th className="p-4 font-semibold border-b border-gray-200 w-[25%]">Better Alternatives</th>
+                <th className="p-4 font-semibold border-b border-gray-200">Recommendation & Strategy</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
                 {data.metrics.map((metric, idx) => (
                   <React.Fragment key={idx}>
-                  <tr className="hover:bg-blue-50/50 transition-colors group">
+                  <tr 
+                    className={`hover:bg-blue-50/50 transition-colors group cursor-pointer ${expandedRows.includes(idx) ? 'bg-blue-50/30' : ''}`}
+                    onClick={() => toggleRow(idx)}
+                  >
                     <td className="p-4 align-top">
                         <button 
-                            onClick={() => toggleRow(idx)}
-                            className="p-1 rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
-                            title="Toggle SERP View"
+                            className={`p-1 rounded-full transition-colors ${expandedRows.includes(idx) ? 'bg-blue-200 text-blue-700' : 'bg-gray-100 text-gray-500 group-hover:bg-blue-100'}`}
+                            title="View Alternatives & SERP"
                         >
                             {expandedRows.includes(idx) ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
@@ -293,7 +296,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
                     )}
                     <td className="p-4 text-gray-600 text-sm align-top">
                         <div className="flex flex-col gap-2">
-                            <div className="flex items-start gap-2 font-medium text-gray-900">
+                            <div className="flex items-start gap-2 font-medium text-gray-900 leading-tight">
                                 <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                                 {metric.recommendation}
                             </div>
@@ -305,63 +308,113 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
                             )}
                         </div>
                     </td>
-                    <td className="p-4 align-top">
-                        <div className="flex flex-col gap-2">
-                            {metric.relatedKeywords && metric.relatedKeywords.length > 0 ? (
-                                metric.relatedKeywords.map((rk, k) => (
-                                    <div key={k} className="flex flex-col p-2 bg-white rounded border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <span className="font-medium text-gray-800 text-xs">{rk.keyword}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                                            <span className="bg-gray-50 px-1 rounded">{rk.searchVolume}</span>
-                                            <span className={`px-1 rounded ${getCompetitionColor(rk.competition, true)}`}>
-                                                {rk.competition}
-                                            </span>
-                                            <span className="text-gray-400">| {rk.keywordType}</span>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <span className="text-gray-400 text-xs italic">None found</span>
-                            )}
-                        </div>
-                    </td>
                   </tr>
                   
-                  {/* Expanded SERP Row */}
+                  {/* Expanded Row Content */}
                   {expandedRows.includes(idx) && (
                     <tr className="bg-gray-50/50">
                         <td colSpan={100} className="p-0">
-                            <div className="p-6 bg-gray-50 border-y border-gray-100 animate-in fade-in slide-in-from-top-1 duration-200">
-                                <h4 className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">
-                                    <Search className="w-4 h-4" />
-                                    Top 10 Google Search Results (SERP)
-                                </h4>
-                                {metric.serpResults && metric.serpResults.length > 0 ? (
-                                    <div className="grid md:grid-cols-2 gap-4">
-                                        {metric.serpResults.map((serp, sIdx) => (
-                                            <div key={sIdx} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:border-blue-300 transition-colors">
-                                                <div className="flex items-start gap-3">
-                                                    <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs font-bold mt-0.5">
-                                                        {serp.position}
-                                                    </span>
-                                                    <div className="min-w-0">
-                                                        <a href={serp.url} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline text-sm block truncate">
-                                                            {serp.title}
-                                                        </a>
-                                                        <div className="text-green-700 text-xs truncate mb-1">{serp.url}</div>
-                                                        <p className="text-xs text-gray-500 line-clamp-2">{serp.snippet}</p>
+                            <div className="p-6 border-y border-gray-200 animate-in fade-in slide-in-from-top-1 duration-300 space-y-8">
+                                
+                                {/* 1. Better Alternatives Table */}
+                                <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-5 py-3 border-b border-gray-200 flex items-center justify-between">
+                                          <h4 className="font-bold text-indigo-900 flex items-center gap-2 text-sm uppercase tracking-wide">
+                                             <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-500" />
+                                             Top 10 High-Potential Alternatives
+                                          </h4>
+                                          <span className="text-xs text-indigo-600 bg-white px-2 py-1 rounded border border-indigo-100 shadow-sm">
+                                             Recommended Substitutes
+                                          </span>
+                                     </div>
+                                     <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="bg-gray-50 text-gray-500 border-b border-gray-100 text-xs uppercase tracking-wider">
+                                                    <th className="px-5 py-3 text-left font-medium w-[25%]">Alternative Keyword</th>
+                                                    <th className="px-5 py-3 text-left font-medium w-[35%]">Why it's better (Strategy)</th>
+                                                    <th className="px-5 py-3 text-left font-medium w-[15%]">Type</th>
+                                                    <th className="px-5 py-3 text-right font-medium w-[15%]">Volume</th>
+                                                    <th className="px-5 py-3 text-center font-medium w-[10%]">Comp.</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50">
+                                                {metric.relatedKeywords && metric.relatedKeywords.length > 0 ? (
+                                                    metric.relatedKeywords.map((rk, k) => (
+                                                        <tr key={k} className="hover:bg-indigo-50/30 transition-colors">
+                                                            <td className="px-5 py-3 text-gray-900 font-medium">
+                                                                {rk.keyword}
+                                                            </td>
+                                                            <td className="px-5 py-3 text-gray-600 leading-snug">
+                                                                {rk.whyBetter ? (
+                                                                    <div className="flex items-start gap-1.5">
+                                                                        <ArrowRight className="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" />
+                                                                        {rk.whyBetter}
+                                                                    </div>
+                                                                ) : '-'}
+                                                            </td>
+                                                            <td className="px-5 py-3">
+                                                                <span className="inline-block bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs border border-gray-200">
+                                                                    {rk.keywordType}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-5 py-3 text-right font-mono text-gray-700">
+                                                                {rk.searchVolume}
+                                                            </td>
+                                                            <td className="px-5 py-3 text-center">
+                                                                <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded ${getCompetitionColor(rk.competition, true)}`}>
+                                                                    {rk.competition}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan={5} className="px-5 py-4 text-center text-gray-400 italic">
+                                                            No alternative recommendations found for this keyword.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                     </div>
+                                </div>
+
+                                {/* 2. SERP Results */}
+                                <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                                     <div className="bg-gray-50 px-5 py-3 border-b border-gray-200">
+                                        <h4 className="flex items-center gap-2 text-sm font-bold text-gray-700 uppercase tracking-wide">
+                                            <Search className="w-4 h-4 text-gray-500" />
+                                            Top 10 Google Search Results (SERP)
+                                        </h4>
+                                     </div>
+                                    <div className="p-5">
+                                        {metric.serpResults && metric.serpResults.length > 0 ? (
+                                            <div className="grid md:grid-cols-2 gap-4">
+                                                {metric.serpResults.map((serp, sIdx) => (
+                                                    <div key={sIdx} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:border-blue-300 transition-colors">
+                                                        <div className="flex items-start gap-3">
+                                                            <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs font-bold mt-0.5">
+                                                                {serp.position}
+                                                            </span>
+                                                            <div className="min-w-0">
+                                                                <a href={serp.url} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline text-sm block truncate">
+                                                                    {serp.title}
+                                                                </a>
+                                                                <div className="text-green-700 text-xs truncate mb-1">{serp.url}</div>
+                                                                <p className="text-xs text-gray-500 line-clamp-2">{serp.snippet}</p>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                ))}
                                             </div>
-                                        ))}
+                                        ) : (
+                                            <div className="text-gray-500 text-sm italic py-4 text-center bg-white rounded border border-dashed border-gray-300">
+                                                No specific SERP data returned for this keyword.
+                                            </div>
+                                        )}
                                     </div>
-                                ) : (
-                                    <div className="text-gray-500 text-sm italic py-4 text-center bg-white rounded border border-dashed border-gray-300">
-                                        No specific SERP data returned for this keyword.
-                                    </div>
-                                )}
+                                </div>
                             </div>
                         </td>
                     </tr>
