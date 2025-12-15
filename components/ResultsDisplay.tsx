@@ -192,12 +192,12 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
                 />
                 <Tooltip 
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  formatter={(value: any, name: any, props: any) => {
+                  formatter={((value: any, name: any, props: any) => {
                     if (name === 'volume' && props && props.payload) {
                         return [props.payload.originalVolume, 'Volume'];
                     }
                     return [value, name];
-                  }}
+                  }) as any}
                 />
                 <Legend />
                 <Bar dataKey="volume" name="Search Volume / Interest" radius={[4, 4, 0, 0]}>
