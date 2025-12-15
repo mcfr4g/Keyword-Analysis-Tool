@@ -192,7 +192,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
                 />
                 <Tooltip 
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  formatter={(value: number, name: string, props: any) => {
+                  formatter={(value: any, name: any, props: any) => {
                     if (name === 'volume') return [props.payload.originalVolume, 'Volume'];
                     return [value, name];
                   }}
