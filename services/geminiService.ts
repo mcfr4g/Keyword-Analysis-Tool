@@ -23,16 +23,15 @@ const parseJSONFromMarkdown = (text: string): any => {
 };
 
 export const analyzeKeywords = async (
-  apiKey: string,
   keywords: string,
   location: string,
   website?: string
 ): Promise<AnalysisResult> => {
-  if (!apiKey) {
+  if (!process.env.API_KEY) {
     throw new Error("API Key is missing.");
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   // Calculate actual keyword count to force the model to match it
   const keywordList = keywords.split(/,|\n/).map(k => k.trim()).filter(k => k.length > 0);

@@ -74,8 +74,7 @@ const App: React.FC = () => {
     addToHistory(keywords, location, website);
 
     try {
-      const apiKey = process.env.API_KEY || '';
-      const data = await analyzeKeywords(apiKey, keywords, location, website);
+      const data = await analyzeKeywords(keywords, location, website);
       setResult(data);
     } catch (err: any) {
       setError(err.message || 'Something went wrong during analysis.');
