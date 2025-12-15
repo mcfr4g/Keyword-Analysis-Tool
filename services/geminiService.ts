@@ -49,58 +49,59 @@ export const analyzeKeywords = async (
   // Constructed prompt to force tool usage and structure
   const prompt = `
     Role: Senior SEO Data Scientist.
-    Task: Conduct a deep-dive keyword analysis for the following ${keywordCount} keywords: "${keywordString}" in location: "${location}".
+    Task: Conduct a deep-dive keyword analysis for the following ${keywordCount} keywords: "${keywordString}" in target location: "${location}".
     ${websiteContext}
 
     OBJECTIVE:
-    Provide ACCURATE, REAL-WORLD data using 'googleSearch'. 
+    Provide ACCURATE, REAL-WORLD volume data using 'googleSearch'. You must cross-reference multiple search results to find the most reliable numbers.
     
     CRITICAL INSTRUCTION:
-    You have received exactly ${keywordCount} keywords. You MUST return a JSON array containing exactly ${keywordCount} objects. Do not combine them. Do not skip any.
+    You have received exactly ${keywordCount} keywords. You MUST return a JSON array containing exactly ${keywordCount} objects.
 
-    SEARCH INSTRUCTIONS:
-    1.  **Volume & Stats**: Search for "[keyword] search volume range 2024", "[keyword] monthly searches ${location}".
-    2.  **Competition**: Search for "[keyword] keyword difficulty".
+    SEARCH INSTRUCTIONS (Execute these searches):
+    1.  **Volume Discovery**: 
+        - Search for "[keyword] search volume ${location} 2024" and "[keyword] monthly searches stats".
+        - Search for "keyword planner data for [keyword]".
+        - If ${location} is a specific city and no data is found, try searching for the broader country volume and note it (e.g., "10k (US)").
+    2.  **Competition Analysis**: Search for "[keyword] keyword difficulty" or "[keyword] SEO competition".
     3.  **Alternatives**: Look for "better keywords for [keyword]" or "related long-tail keywords for [keyword]". Find at least 10 high-quality alternatives.
-    4.  **SERP Analysis**: Search for the exact keyword "[keyword]" to see the current top ranking pages.
+    4.  **SERP Analysis**: Search for the exact keyword "[keyword]" to see current top ranking pages.
     ${websiteSearchInstruction}
 
     DATA EXTRACTION RULES:
-    - **Search Volume**: Priority: Specific numbers. Fallback: Ranges (e.g., "1K–10K"). 
-    - **NO HALLUCINATIONS**: If accurate volume data is not found in search results, set "searchVolume" to "Data Unavailable". DO NOT GUESS or fabricate numbers.
+    - **Search Volume**: 
+      - LOOK FOR NUMBERS. Examples: "12,100", "10k-100k", "500/mo".
+      - **NO HALLUCINATIONS**: It is IMPERATIVE that you do not invent numbers. If you cannot find volume data in the search snippets after multiple attempts, set "searchVolume" to "Data Unavailable". 
     - **Tail Type**: Classify as 'Short-tail' (1-2 words, broad) or 'Long-tail' (3+ words, specific).
     - **Quick Win**: Set 'isQuickWin' to true ONLY if volume is decent (e.g. >500) AND competition is Low/Medium.
-    - **Alternatives**: Provide exactly 10 BETTER alternative keywords. For EACH alternative, you MUST provide its estimated Volume, Competition, and a "Why Better" reason (e.g., "Higher Intent", "Lower Difficulty").
-    - **SERP Results**: List the Top 10 organic search results found for the keyword. Include Title, URL, and a brief snippet.
-    ${website ? '- **Site Audit**: If the website was provided, estimate current performance (e.g., "Indexed", "Not found", "Low relevance content"). If no website, leave null.' : ''}
+    - **Alternatives**: Provide exactly 10 BETTER alternative keywords. For EACH, provide estimated Volume, Competition, and "Why Better" (e.g., "Higher Intent").
+    - **SERP Results**: List Top 10 organic search results. Include Title, URL, and snippet.
 
     OUTPUT STRUCTURE:
-    1. First, provide a "## Market Insights" section. This must be plain text. Summarize the overall opportunity, competition levels, and top recommendations. Do NOT put JSON here.
-    2. Then, output this exact separator string on a new line: ---JSON_START---
-    3. Finally, output the strictly valid JSON array containing the data for ALL ${keywordCount} keywords.
+    1. "## Market Insights": Plain text summary of opportunity, competition, and top recommendations.
+    2. Separator: ---JSON_START---
+    3. JSON: The strictly valid JSON array.
 
-    JSON SCHEMA (for the part after the separator):
+    JSON SCHEMA:
     [
       {
-        "keyword": "string (The input keyword)",
+        "keyword": "string",
         "searchVolume": "string (e.g., '12,500', '1k-10k' or 'Data Unavailable')",
         "competition": "string (Low, Medium, High)",
         "difficulty": "string (e.g., '45/100', 'Hard')",
-        "keywordType": "string (Short-tail or Long-tail)",
+        "keywordType": "string (Short-tail | Long-tail)",
         "isQuickWin": boolean,
         "siteAudit": "string (Optional)",
-        "recommendation": "string (Actionable advice)",
-        "rationale": "string (Why this recommendation?)",
-        "serpResults": [
-            { "position": 1, "title": "string", "url": "string", "snippet": "string" }
-        ],
+        "recommendation": "string",
+        "rationale": "string",
+        "serpResults": [ { "position": 1, "title": "string", "url": "string", "snippet": "string" } ],
         "relatedKeywords": [
            {
              "keyword": "string",
              "searchVolume": "string",
              "competition": "string",
-             "keywordType": "string (Short-tail | Long-tail)",
-             "whyBetter": "string (e.g. 'Higher Search Volume', 'Lower Competition')"
+             "keywordType": "string",
+             "whyBetter": "string"
            }
         ]
       }
@@ -109,7 +110,7 @@ export const analyzeKeywords = async (
 
   try {
     const response: GenerateContentResponse = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-pro-preview",
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -139,7 +140,7 @@ export const analyzeKeywords = async (
     const parsedMetrics = parseJSONFromMarkdown(jsonPart);
 
     if (!parsedMetrics && !text) {
-        throw new Error("The AI model returned no content.");
+        throw new Error("The AI model returned no content. Please try again.");
     }
     
     const metrics = Array.isArray(parsedMetrics) ? parsedMetrics : [];

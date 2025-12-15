@@ -21,14 +21,16 @@ interface ResultsDisplayProps {
 const parseVolume = (volStr: string): number => {
   if (!volStr) return 0;
   const s = volStr.toLowerCase();
-  if (s.includes('unavailable') || s.includes('n/a') || s.includes('unknown')) return 0;
+  if (s.includes('unavailable') || s.includes('n/a') || s.includes('unknown') || s.includes('data')) return 0;
   
   if (s.includes('high')) return 80; 
   if (s.includes('medium')) return 50;
   if (s.includes('low')) return 20;
 
-  let cleanStr = s.replace(/,/g, '');
+  // Remove commas AND spaces used as separators (e.g. "10 000")
+  let cleanStr = s.replace(/[, ]/g, '');
   
+  // Handle ranges like "1k-10k"
   if (cleanStr.includes('-')) {
     const parts = cleanStr.split('-').map(p => parseVolume(p.trim()));
     if (parts.length === 2) {
@@ -269,10 +271,15 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
                     </td>
                     <td className="p-4 align-top space-y-1">
                         <div>
-                        {metric.searchVolume?.toLowerCase().includes('unavailable') ? (
-                            <span className="flex items-center gap-1 text-gray-400 italic text-sm" title="Exact data not publicly indexed">
-                                <Info className="w-3 h-3" /> N/A
-                            </span>
+                        {parseVolume(metric.searchVolume) === 0 ? (
+                            <div className="flex flex-col items-start gap-1 group/tooltip">
+                                <span className="flex items-center gap-1 text-gray-400 italic text-sm cursor-help">
+                                    <Info className="w-3 h-3" /> N/A
+                                </span>
+                                <span className="hidden group-hover/tooltip:block absolute z-10 bg-gray-800 text-white text-xs p-2 rounded shadow-lg -mt-8 ml-8 w-48">
+                                    Exact volume data not publicly available for this specific location/keyword combination.
+                                </span>
+                            </div>
                         ) : (
                             <span className="font-mono text-gray-700 text-sm bg-gray-100 px-2 py-0.5 rounded block w-fit">
                                 {metric.searchVolume}
